@@ -4,24 +4,14 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
-const element = {
-  type: "h1",
-  props: {
-    title: "foo",
-    children: "Hello",
-  },
-};
-
-const node = document.createElement(element.type);
-node["title"] = element.props.title;
-const text = document.createTextNode("");
-text["nodeValue"] = element.props.children;
-
-const container = document.getElementById("root");
-node.appendChild(text);
-if ( container ) {
-  container.appendChild(node);
-}
+const element = (
+  <div id="foo">
+    <a>bar</a>
+    <b />
+  </div>
+)
+const container = document.getElementById("root")
+ReactDOM.render(element, container)
 
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))
