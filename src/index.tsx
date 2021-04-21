@@ -4,8 +4,26 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
+function render(element: any, container: HTMLElement) {
+  const dom = element.type == "TEXT_ELEMENT"
+              ? document.createTextNode("")
+              : document.createElement(element.type);
+  const isProperty = (key: string) => key !== "children";
+  Object.keys(element.props)
+    .filter(isProperty)
+    .forEach(name => {
+      dom[name] = element.props[name];
+    });
+
+  element.props.children.forEach((child: any) =>
+    render(child, dom)
+  )
+  container.appendChild(dom);
+}
+
 const Didact = {
   createElement,
+  render,
 };
 
 /** @jsx Didact.createElement */
@@ -16,14 +34,16 @@ const element = (
   </div>
 );
 const container = document.getElementById("root");
-ReactDOM.render(element, container);
+if ( container ) {
+  Didact.render(element, container);
+}
 
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))
 // or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
 reportWebVitals();
 
-function createElement(type: any, props: any, ...children: any) {
+function createElement(type: string, props: any, ...children: any) {
   return {
     type,
     props: {
