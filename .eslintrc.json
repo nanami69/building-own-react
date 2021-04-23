@@ -5,11 +5,5 @@
         "ecmaFeatures": {
             "jsx": true
         }
-    },
-    "rules": {
-        "indent": [
-            2,
-            "tab"
-        ]
     }
 }
