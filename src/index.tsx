@@ -9,12 +9,8 @@ function createDom(fiber: any) {
     fiber.type == "TEXT_ELEMENT"
       ? document.createTextNode("")
       : document.createElement(fiber.type);
-  const isProperty = (key: string) => key !== "children";
-  Object.keys(fiber.props)
-    .filter(isProperty)
-    .forEach(name => {
-      dom[name] = fiber.props[name];
-    });
+  
+  updateDom(dom, { children: [] }, fiber.props ?? { children: [] });
 
   return dom;
 }
@@ -38,15 +34,20 @@ let deletions: any = null;
 const Didact = {
   createElement,
   render,
+  useState,
 };
 
 let nextUnitOfWork: any = null;
 
 /** @jsx Didact.createElement */
-function App(props: any) {
-  return <h1>Hi {props.name}</h1>
+function Counter() {
+  const [state, setState] = Didact.useState(1)
+  return (
+    <h1 onClick={() => setState((c: any) => c + 1)}>Count: {state}</h1>
+  )
 }
-const element = <App name="foo" />
+
+const element = <Counter />;
 const container = document.getElementById("root");
 if ( container ) {
   Didact.render(element, container);
@@ -179,9 +180,44 @@ function performUnitOfWork(fiber: any) {
 　}
 }
 
+let wipFiber: any = null;
+let hookIndex: any = null;
+
 function updateFunctionComponent(fiber: any) {
+  wipFiber = fiber;
+  hookIndex = 0;
+  wipFiber.hooks = [];
   const children = [fiber.type(fiber.props)];
   reconcileChildren(fiber, children);
+}
+
+function useState(initial: any) {
+  const oldHook = wipFiber.alternate && wipFiber.alternate.hooks && wipFiber.alternate.hooks[hookIndex];
+  const hook = {
+    state: oldHook ? oldHook.state : initial,
+    queue: [],
+  };
+
+  const actions = oldHook ? oldHook.queue : []
+  actions.forEach((action: any) => {
+    hook.state = action(hook.state)
+  });
+
+
+  const setState = (action: never) => {
+    hook.queue.push(action);
+    wipRoot = {
+      dom: currentRoot.dom,
+      props: currentRoot.props,
+      alternate: currentRoot,
+    };
+    nextUnitOfWork = wipRoot;
+    deletions = [];
+  };
+
+  wipFiber.hooks.push(hook);
+  hookIndex++;
+  return [hook.state, setState];
 }
 
 function updateHostComponent(fiber: any) {
