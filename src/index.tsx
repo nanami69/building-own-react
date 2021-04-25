@@ -43,12 +43,10 @@ const Didact = {
 let nextUnitOfWork: any = null;
 
 /** @jsx Didact.createElement */
-const element = (
-  <div id="foo">
-    <a>bar</a>
-    <b />
-  </div>
-);
+function App(props: any) {
+  return <h1>Hi {props.name}</h1>
+}
+const element = <App name="foo" />
 const container = document.getElementById("root");
 if ( container ) {
   Didact.render(element, container);
@@ -118,17 +116,30 @@ function commitWork(fiber: any) {
   if (!fiber) {
     return;
   }
-  const domParent = fiber.parent.dom;
+
+  // DOMノードを持つファイバーが見つかるまでファイバーツリーを上に移動
+  let domParentFiber = fiber.parent;
+  while (!domParentFiber.dom) { domParentFiber = domParentFiber.parent; }
+  const domParent = domParentFiber.dom;
+
   if (fiber.effectTag === "PLACEMENT" && fiber.dom != null) {
     domParent.appendChild(fiber.dom);
   } else if (fiber.effectTag === "UPDATE" && fiber.dom != null) {
     updateDom(fiber.dom, fiber.alternate.props, fiber.props);
   } else if (fiber.effectTag === "DELETION") {
-    domParent.removeChild(fiber.dom);
+    commitDeletion(fiber, domParent);
   }
   
   commitWork(fiber.child);
   commitWork(fiber.sibling);
+}
+
+function commitDeletion(fiber: any, domParent: any) {
+  if (fiber.dom) {
+    domParent.removeChild(fiber.dom);
+  } else {
+    commitDeletion(fiber.child, domParent);
+  }
 }
 
 function workLoop(deadline: any): void {
@@ -149,12 +160,12 @@ function workLoop(deadline: any): void {
 requestIdleCallback(workLoop);
 
 function performUnitOfWork(fiber: any) {
-  if (!fiber.dom) {
-    fiber.dom = createDom(fiber);
+  const isFunctionComponent = fiber.type instanceof Function;
+  if (isFunctionComponent) {
+    updateFunctionComponent(fiber);
+  } else {
+    updateHostComponent(fiber);
   }
-
-  const elements = fiber.props.children;
-  reconcileChildren(fiber, elements);
  
   if (fiber.child) {
     return fiber.child;
@@ -166,6 +177,18 @@ function performUnitOfWork(fiber: any) {
   }
   nextFiber = nextFiber.parent;
 　}
+}
+
+function updateFunctionComponent(fiber: any) {
+  const children = [fiber.type(fiber.props)];
+  reconcileChildren(fiber, children);
+}
+
+function updateHostComponent(fiber: any) {
+  if (!fiber.dom) {
+    fiber.dom = createDom(fiber)
+  }
+  reconcileChildren(fiber, fiber.props.children)
 }
 
 function reconcileChildren(wipFiber: any, elements: any) {
